@@ -57,26 +57,41 @@ class SaleController extends Controller
      */
     public function store(StoreSaleRequest $request)
     {
-        DB::transaction(function() use ($request) {
-            $total = calculateSaleTotal($request->items);
-            $sale = Sale::create([
-                'user_id' => $request->user_id,
-                'date' => $request->date,
-                'total' => $total
-            ]);
+        try {
+            $sale = DB::transaction(function() use ($request) {
+                $total = calculateSaleTotal($request->items);
 
-            foreach ($request->items as $item) {
-                $sale->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'discount' => $item['discount'] ?? 0,
-                    'total' => ($item['quantity'] * $item['price']) - ($item['discount'] ?? 0),
+                $sale = Sale::create([
+                    'user_id' => $request->user_id,
+                    'date' => $request->date,
+                    'total' => $total
                 ]);
-            }
-        });
 
-        return response()->json(['message' => 'Sale created successfully!']);
+                foreach ($request->items as $item) {
+                    $sale->items()->create([
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price'],
+                        'discount' => $item['discount'] ?? 0,
+                        'total' => ($item['quantity'] * $item['price']) - ($item['discount'] ?? 0),
+                    ]);
+                }
+
+                return $sale;
+            });
+
+            return response()->json([
+                'message' => 'Sale created successfully!',
+                'sale_id' => $sale->id,
+                'total' => $sale->total,
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Sale creation failed.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

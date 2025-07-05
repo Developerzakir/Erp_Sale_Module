@@ -81,24 +81,59 @@ function setInitialPrices() {
     }
 
     // Submit form via AJAX
-    document.getElementById('sale-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        let formData = new FormData(this);
+    // document.getElementById('sale-form').addEventListener('submit', function(e) {
+    //     e.preventDefault();
+    //     let formData = new FormData(this);
 
-        fetch('/sales', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
-            },
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(err => {
-            alert('Error: ' + err);
-        });
+    //     fetch('/sales', {
+    //         method: 'POST',
+    //         headers: {
+    //             'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+    //         },
+    //         body: formData
+    //     })
+    //     .then(res => res.json())
+    //     .then(data => {
+    //         alert(data.message);
+    //         location.reload();
+    //     })
+    //     .catch(err => {
+    //         alert('Error: ' + err);
+    //     });
+    // });
+
+    document.getElementById('sale-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let formData = new FormData(this);
+
+    fetch('/sales', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+            'Accept': 'application/json'  // এই লাইনটা যোগ করো
+        },
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) throw res;  // error হলে catch এ যাবে
+        return res.json();
+    })
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch(async err => {
+        if (err.status === 422) {
+            const errorData = await err.json();
+            let messages = Object.values(errorData.errors).flat().join("\n");
+            alert("Validation errors:\n" + messages);
+        } else {
+            alert('Error: ' + err.statusText || err.status);
+        }
     });
+});
+
+
+
+
 });
